@@ -1,15 +1,16 @@
-name: Build Release APK
+name: CI
 
 on:
   push:
     branches: ["**"]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
 jobs:
-  build-apk:
+  analyze-and-test:
+    name: Analyze & Test
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +33,35 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Style-only infos should not fail the pipeline; real errors/warnings still do.
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
+  build-apk:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
       # The committed Gradle wrapper script needs the executable bit on Linux.
       - name: Make gradlew executable
         run: chmod +x android/gradlew
@@ -45,3 +75,15 @@ jobs:
           name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      # When a v* tag is pushed, publish a GitHub Release with the APK attached.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

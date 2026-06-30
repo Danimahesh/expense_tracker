@@ -1,2 +1,21 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts must always use LF so they run on Linux CI runners.
+*.sh    text eol=lf
+gradlew text eol=lf
+
+# Windows batch files use CRLF.
+*.bat   text eol=crlf
+gradlew.bat text eol=crlf
+
+# Treat binary assets as binary (no EOL conversion).
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.jar   binary
+*.keystore binary
+*.ttf   binary
+*.otf   binary
