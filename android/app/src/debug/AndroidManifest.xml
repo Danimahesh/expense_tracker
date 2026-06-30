@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The INTERNET permission is required only for development tooling
+         (Flutter hot reload / debugging). It applies to debug builds ONLY
+         and is NOT part of the offline release APK. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

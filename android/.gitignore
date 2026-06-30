@@ -1,0 +1,18 @@
+# IMPORTANT: This project is built on CI WITHOUT running `flutter create`,
+# so the Gradle wrapper MUST stay in version control. Unlike the default
+# Flutter template, we deliberately do NOT ignore:
+#   - gradle/wrapper/gradle-wrapper.jar
+#   - gradlew
+#   - gradlew.bat
+
+# Machine-specific / generated files (safe to ignore):
+/.gradle/
+/captures/
+local.properties
+.cxx/
+GeneratedPluginRegistrant.java
+
+# Build outputs
+/app/debug
+/app/profile
+/app/release
