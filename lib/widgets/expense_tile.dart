@@ -1,11 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/expense.dart';
 import '../utils/categories.dart';
 import '../utils/formatters.dart';
 import '../utils/payment_methods.dart';
 
-/// A single transaction row used in the records list.
+/// A compact transaction row: category icon, title, payment method, date,
+/// and amount. Used by both the history list and the home "recent" section.
 class ExpenseTile extends StatelessWidget {
   final Expense expense;
   final String currency;
@@ -22,75 +23,62 @@ class ExpenseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cat = Categories.byKey(expense.category);
     final method = PaymentMethods.byKey(expense.paymentMethod);
-    final theme = Theme.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final title =
+        expense.description.isEmpty ? cat.label : expense.description;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: cat.color.withOpacity(0.16),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(cat.icon, color: cat.color, size: 22),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: cat.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(13),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      expense.description.isEmpty
-                          ? cat.label
-                          : expense.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
+              child: Icon(cat.icon, color: cat.color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15.5,
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Icon(method.icon,
-                            size: 13,
-                            color: theme.textTheme.bodyMedium?.color),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
-                            '${method.shortLabel} • ${cat.label}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: theme.textTheme.bodyMedium?.color,
-                            ),
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${method.shortLabel} · ${Formatters.historyHeader(expense.date)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Text(
-                '- ${Formatters.money(expense.amount, symbol: currency)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              Formatters.money(expense.amount, symbol: currency),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15.5,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

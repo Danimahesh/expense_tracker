@@ -1,154 +1,321 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../providers/settings_provider.dart';
-import '../services/billing_engine.dart';
 import '../utils/formatters.dart';
 import '../utils/payment_methods.dart';
-import '../widgets/bill_card.dart';
-import '../widgets/summary_card.dart';
+import '../widgets/app_card.dart';
+import '../widgets/expense_details_sheet.dart';
+import '../widgets/expense_tile.dart';
+import 'main_navigation.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final expenses = context.watch<ExpenseProvider>();
-    final settings = context.watch<SettingsProvider>();
-    final currency = settings.currency;
+    final provider = context.watch<ExpenseProvider>();
+    final currency = context.watch<SettingsProvider>().currency;
+    final now = DateTime.now();
 
-    final bobPeriod = BillingEngine.currentPeriod(PaymentType.bob);
-    final amazonPeriod = BillingEngine.currentPeriod(PaymentType.amazon);
+    final monthExpenses = provider.all
+        .where((e) => e.date.year == now.year && e.date.month == now.month)
+        .toList();
+    final monthTotal = monthExpenses.fold<double>(0, (s, e) => s + e.amount);
+    final todayTotal = monthExpenses
+        .where((e) => e.date.day == now.day)
+        .fold<double>(0, (s, e) => s + e.amount);
 
-    final bobTotal = expenses.currentBillTotal(PaymentType.bob);
-    final amazonTotal = expenses.currentBillTotal(PaymentType.amazon);
-    final cashTotal = expenses.currentMonthTotal(PaymentType.cash);
-    final upiTotal = expenses.currentMonthTotal(PaymentType.upi);
-    final currentGrand = expenses.currentGrandTotal();
+    final byMethod = _byMethod(monthExpenses);
+    final recent = provider.all.take(5).toList();
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Home')),
       body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () => context.read<ExpenseProvider>().load(),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 120),
-            children: [
-              Row(
+        top: false,
+        child: provider.loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Good ${_greeting()},',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const Text(
-                          'Your Money',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                  _SummaryCard(
+                    monthLabel: Formatters.monthYear(now),
+                    total: monthTotal,
+                    todayTotal: todayTotal,
+                    count: monthExpenses.length,
+                    currency: currency,
+                  ),
+                  const SizedBox(height: 22),
+
+                  const SectionTitle('Spending by payment method'),
+                  _MethodBreakdown(
+                    data: byMethod,
+                    total: monthTotal,
+                    currency: currency,
+                  ),
+                  const SizedBox(height: 22),
+
+                  SectionTitle(
+                    'Recent transactions',
+                    trailing: recent.isEmpty
+                        ? null
+                        : TextButton(
+                            onPressed: () =>
+                                AppNavigator.of(context).goToTab(1),
+                            child: const Text('See all'),
                           ),
+                  ),
+                  if (recent.isEmpty)
+                    const AppCard(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: Text('No transactions yet.\nTap “Add” to record one.',
+                              textAlign: TextAlign.center),
                         ),
-                      ],
+                      ),
+                    )
+                  else
+                    AppCard(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < recent.length; i++) ...[
+                            ExpenseTile(
+                              expense: recent[i],
+                              currency: currency,
+                              onTap: () => showExpenseDetails(
+                                  context, recent[i], currency),
+                            ),
+                            if (i != recent.length - 1)
+                              const Divider(height: 1),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.account_balance_wallet_rounded),
-                  ),
                 ],
               ),
-              const SizedBox(height: 20),
+      ),
+    );
+  }
 
-              SummaryCard(
-                title: 'Grand Total',
-                subtitle: 'Current cycle across all methods',
-                amount: currentGrand,
-                icon: Icons.account_balance_rounded,
-                color: Colors.white,
-                currency: currency,
-                emphasize: true,
-              ),
-              const SizedBox(height: 18),
+  List<_MethodTotal> _byMethod(List<Expense> list) {
+    final totals = <_MethodTotal>[];
+    for (final m in PaymentMethods.all) {
+      final sum = list
+          .where((e) => e.paymentMethod == m.key)
+          .fold<double>(0, (s, e) => s + e.amount);
+      if (sum > 0) totals.add(_MethodTotal(m, sum));
+    }
+    totals.sort((a, b) => b.amount.compareTo(a.amount));
+    return totals;
+  }
+}
 
-              _sectionLabel(context, 'Credit & Pay Later Bills'),
-              const SizedBox(height: 12),
-              BillCard(
-                method: PaymentMethods.bob,
-                period: bobPeriod,
-                total: bobTotal,
-                currency: currency,
-              ),
-              const SizedBox(height: 14),
-              BillCard(
-                method: PaymentMethods.amazon,
-                period: amazonPeriod,
-                total: amazonTotal,
-                currency: currency,
-              ),
-              const SizedBox(height: 18),
+class _MethodTotal {
+  final PaymentMethodDef method;
+  final double amount;
+  const _MethodTotal(this.method, this.amount);
+}
 
-              _sectionLabel(context, 'This Month'),
-              const SizedBox(height: 12),
-              SummaryCard(
-                title: 'Cash',
-                subtitle: Formatters.monthYear(DateTime.now()),
-                amount: cashTotal,
-                icon: PaymentMethods.cash.icon,
-                color: PaymentMethods.cash.color,
-                currency: currency,
-              ),
-              const SizedBox(height: 12),
-              SummaryCard(
-                title: 'UPI',
-                subtitle: Formatters.monthYear(DateTime.now()),
-                amount: upiTotal,
-                icon: PaymentMethods.upi.icon,
-                color: PaymentMethods.upi.color,
-                currency: currency,
-              ),
-              const SizedBox(height: 18),
+class _SummaryCard extends StatelessWidget {
+  final String monthLabel;
+  final double total;
+  final double todayTotal;
+  final int count;
+  final String currency;
 
-              _sectionLabel(context, 'Overall'),
-              const SizedBox(height: 12),
-              SummaryCard(
-                title: 'All-Time Total',
-                subtitle: '${expenses.all.length} transactions recorded',
-                amount: expenses.grandTotal,
-                icon: Icons.summarize_rounded,
-                color: Theme.of(context).colorScheme.secondary,
-                currency: currency,
+  const _SummaryCard({
+    required this.monthLabel,
+    required this.total,
+    required this.todayTotal,
+    required this.count,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Spent in $monthLabel',
+            style: TextStyle(
+              color: scheme.onPrimary.withValues(alpha: 0.85),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              Formatters.money(total, symbol: currency),
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontSize: 38,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniStat(
+                  label: 'Transactions',
+                  value: '$count',
+                  onColor: scheme.onPrimary,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 32,
+                color: scheme.onPrimary.withValues(alpha: 0.25),
+              ),
+              Expanded(
+                child: _MiniStat(
+                  label: 'Today',
+                  value: Formatters.money(todayTotal, symbol: currency),
+                  onColor: scheme.onPrimary,
+                ),
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color onColor;
+
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    required this.onColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: TextStyle(
+              color: onColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: onColor.withValues(alpha: 0.85),
+            fontSize: 12.5,
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _sectionLabel(BuildContext context, String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.2,
+class _MethodBreakdown extends StatelessWidget {
+  final List<_MethodTotal> data;
+  final double total;
+  final String currency;
+
+  const _MethodBreakdown({
+    required this.data,
+    required this.total,
+    required this.currency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (data.isEmpty) {
+      return const AppCard(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 18),
+          child: Center(child: Text('No spending this month yet.')),
+        ),
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        children: [
+          for (var i = 0; i < data.length; i++) ...[
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: data[i].method.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(data[i].method.icon,
+                      color: data[i].method.color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data[i].method.shortLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: total == 0 ? 0 : data[i].amount / total,
+                          minHeight: 6,
+                          backgroundColor:
+                              scheme.surfaceContainerHighest,
+                          color: data[i].method.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  Formatters.money(data[i].amount, symbol: currency),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            if (i != data.length - 1) const SizedBox(height: 16),
+          ],
+        ],
       ),
     );
-  }
-
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'morning';
-    if (h < 17) return 'afternoon';
-    return 'evening';
   }
 }

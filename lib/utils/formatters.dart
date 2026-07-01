@@ -38,14 +38,16 @@ class Formatters {
 
   static String weekday(DateTime date) => DateFormat('EEE').format(date);
 
-  /// Friendly date header used in the records list.
-  static String relativeHeader(DateTime date) {
+  /// Friendly, compact date header for the history list:
+  /// "Today", "Yesterday", "24 Jun", or "24 Jun 2024" for other years.
+  static String historyHeader(DateTime date) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(date.year, date.month, date.day);
     final diff = today.difference(target).inDays;
     if (diff == 0) return 'Today';
     if (diff == 1) return 'Yesterday';
-    return DateFormat('EEEE, d MMM').format(date);
+    if (date.year == now.year) return DateFormat('d MMM').format(date);
+    return DateFormat('d MMM yyyy').format(date);
   }
 }

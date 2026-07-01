@@ -65,9 +65,11 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> deleteExpense(int id) async {
-    await _db.deleteExpense(id);
+    // Remove optimistically so swipe-to-dismiss and the UI update instantly,
+    // then persist.
     _all.removeWhere((e) => e.id == id);
     notifyListeners();
+    await _db.deleteExpense(id);
   }
 
   Future<void> resetAll() async {
