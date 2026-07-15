@@ -90,10 +90,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               return _DateHeader(label: row.label);
                             }
                             final e = (row as _ItemRow).expense;
-                            return _SwipeableItem(
-                              key: ValueKey(e.id),
-                              expense: e,
-                              currency: currency,
+                            final nextIsItem =
+                                i + 1 < rows.length && rows[i + 1] is _ItemRow;
+                            return Column(
+                              children: [
+                                _SwipeableItem(
+                                  key: ValueKey(e.id),
+                                  expense: e,
+                                  currency: currency,
+                                ),
+                                if (nextIsItem) const Divider(height: 1),
+                              ],
                             );
                           },
                         ),
@@ -337,7 +344,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   },
                 ),
                 ...Categories.all.map((c) => ChoiceChip(
-                      avatar: Icon(c.icon, size: 16, color: c.color),
+                      avatar: Icon(c.icon, size: 16),
                       label: Text(c.label),
                       selected: p.categoryFilter == c.key,
                       onSelected: (_) {
@@ -365,7 +372,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   },
                 ),
                 ...PaymentMethods.all.map((m) => ChoiceChip(
-                      avatar: Icon(m.icon, size: 16, color: m.color),
+                      avatar: Icon(m.icon, size: 16),
                       label: Text(m.shortLabel),
                       selected: p.methodFilter == m.key,
                       onSelected: (_) {

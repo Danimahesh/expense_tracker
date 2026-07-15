@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/billing_engine.dart';
+import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../utils/payment_methods.dart';
 import '../widgets/app_card.dart';
+import '../widgets/bill_card.dart';
 import '../widgets/expense_details_sheet.dart';
 import '../widgets/expense_tile.dart';
 import 'main_navigation.dart';
@@ -24,11 +26,7 @@ class HomeScreen extends StatelessWidget {
         .where((e) => e.date.year == now.year && e.date.month == now.month)
         .toList();
     final monthTotal = monthExpenses.fold<double>(0, (s, e) => s + e.amount);
-    final todayTotal = monthExpenses
-        .where((e) => e.date.day == now.day)
-        .fold<double>(0, (s, e) => s + e.amount);
-
-    final byMethod = _byMethod(monthExpenses);
+    final avgDaily = monthTotal / now.day;
     final recent = provider.all.take(5).toList();
 
     return Scaffold(
@@ -40,25 +38,33 @@ class HomeScreen extends StatelessWidget {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                 children: [
-                  _SummaryCard(
-                    monthLabel: Formatters.monthYear(now),
-                    total: monthTotal,
-                    todayTotal: todayTotal,
-                    count: monthExpenses.length,
+                  const SectionTitle('Active Bills'),
+                  BillCard(
+                    method: PaymentMethods.amazon,
+                    period: BillingEngine.currentPeriod(PaymentType.amazon),
+                    total: provider.currentBillTotal(PaymentType.amazon),
                     currency: currency,
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 10),
+                  BillCard(
+                    method: PaymentMethods.bob,
+                    period: BillingEngine.currentPeriod(PaymentType.bob),
+                    total: provider.currentBillTotal(PaymentType.bob),
+                    currency: currency,
+                  ),
+                  const SizedBox(height: 20),
 
-                  const SectionTitle('Spending by payment method'),
-                  _MethodBreakdown(
-                    data: byMethod,
+                  const SectionTitle('This Month'),
+                  _MonthCard(
                     total: monthTotal,
+                    count: monthExpenses.length,
+                    avgDaily: avgDaily,
                     currency: currency,
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 20),
 
                   SectionTitle(
-                    'Recent transactions',
+                    'Recent Transactions',
                     trailing: recent.isEmpty
                         ? null
                         : TextButton(
@@ -72,15 +78,18 @@ class HomeScreen extends StatelessWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Center(
-                          child: Text('No transactions yet.\nTap “Add” to record one.',
-                              textAlign: TextAlign.center),
+                          child: Text(
+                            'No transactions yet.\nTap + to record one.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
                         ),
                       ),
                     )
                   else
                     AppCard(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                          horizontal: 12, vertical: 2),
                       child: Column(
                         children: [
                           for (var i = 0; i < recent.length; i++) ...[
@@ -101,95 +110,53 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  List<_MethodTotal> _byMethod(List<Expense> list) {
-    final totals = <_MethodTotal>[];
-    for (final m in PaymentMethods.all) {
-      final sum = list
-          .where((e) => e.paymentMethod == m.key)
-          .fold<double>(0, (s, e) => s + e.amount);
-      if (sum > 0) totals.add(_MethodTotal(m, sum));
-    }
-    totals.sort((a, b) => b.amount.compareTo(a.amount));
-    return totals;
-  }
 }
 
-class _MethodTotal {
-  final PaymentMethodDef method;
-  final double amount;
-  const _MethodTotal(this.method, this.amount);
-}
-
-class _SummaryCard extends StatelessWidget {
-  final String monthLabel;
+class _MonthCard extends StatelessWidget {
   final double total;
-  final double todayTotal;
   final int count;
+  final double avgDaily;
   final String currency;
 
-  const _SummaryCard({
-    required this.monthLabel,
+  const _MonthCard({
     required this.total,
-    required this.todayTotal,
     required this.count,
+    required this.avgDaily,
     required this.currency,
   });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.primary,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Spent in $monthLabel',
-            style: TextStyle(
-              color: scheme.onPrimary.withValues(alpha: 0.85),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 6),
+          const Text('Total spent',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               Formatters.money(total, symbol: currency),
-              style: TextStyle(
-                color: scheme.onPrimary,
-                fontSize: 38,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _MiniStat(
+                child: _Stat(
                   label: 'Transactions',
                   value: '$count',
-                  onColor: scheme.onPrimary,
                 ),
               ),
-              Container(
-                width: 1,
-                height: 32,
-                color: scheme.onPrimary.withValues(alpha: 0.25),
-              ),
+              Container(width: 1, height: 30, color: AppColors.divider),
               Expanded(
-                child: _MiniStat(
-                  label: 'Today',
-                  value: Formatters.money(todayTotal, symbol: currency),
-                  onColor: scheme.onPrimary,
+                child: _Stat(
+                  label: 'Avg / day',
+                  value: Formatters.money(avgDaily, symbol: currency),
                 ),
               ),
             ],
@@ -200,120 +167,31 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _MiniStat extends StatelessWidget {
+class _Stat extends StatelessWidget {
   final String label;
   final String value;
-  final Color onColor;
 
-  const _MiniStat({
-    required this.label,
-    required this.value,
-    required this.onColor,
-  });
+  const _Stat({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: onColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: onColor.withValues(alpha: 0.85),
-            fontSize: 12.5,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MethodBreakdown extends StatelessWidget {
-  final List<_MethodTotal> data;
-  final double total;
-  final String currency;
-
-  const _MethodBreakdown({
-    required this.data,
-    required this.total,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    if (data.isEmpty) {
-      return const AppCard(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 18),
-          child: Center(child: Text('No spending this month yet.')),
-        ),
-      );
-    }
-
-    return AppCard(
+    return Padding(
+      padding: const EdgeInsets.only(left: 2),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < data.length; i++) ...[
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: data[i].method.color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(data[i].method.icon,
-                      color: data[i].method.color, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data[i].method.shortLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: total == 0 ? 0 : data[i].amount / total,
-                          minHeight: 6,
-                          backgroundColor:
-                              scheme.surfaceContainerHighest,
-                          color: data[i].method.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  Formatters.money(data[i].amount, symbol: currency),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
-            if (i != data.length - 1) const SizedBox(height: 16),
-          ],
+          ),
+          const SizedBox(height: 2),
+          Text(label,
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         ],
       ),
     );

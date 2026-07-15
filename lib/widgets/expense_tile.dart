@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/expense.dart';
+import '../theme/app_theme.dart';
 import '../utils/categories.dart';
 import '../utils/formatters.dart';
 import '../utils/payment_methods.dart';
@@ -35,13 +36,14 @@ class ExpenseTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: cat.color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(13),
+                color: AppColors.cyan.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.20)),
               ),
-              child: Icon(cat.icon, color: cat.color, size: 22),
+              child: Icon(cat.icon, color: AppColors.cyan, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -71,11 +73,16 @@ class ExpenseTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              Formatters.money(expense.amount, symbol: currency),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15.5,
+            Flexible(
+              child: Text(
+                Formatters.money(expense.amount, symbol: currency),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15.5,
+                ),
               ),
             ),
           ],

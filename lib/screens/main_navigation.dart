@@ -44,13 +44,13 @@ class _MainNavigationState extends State<MainNavigation> {
       goToTab: (i) => setState(() => _index = i),
       child: Scaffold(
         body: IndexedStack(index: _index, children: _pages),
-      floatingActionButton: showFab
-          ? FloatingActionButton.extended(
-              onPressed: _openAddExpense,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add'),
-            )
-          : null,
+        floatingActionButton: showFab
+            ? FloatingActionButton(
+                onPressed: _openAddExpense,
+                tooltip: 'Add expense',
+                child: const Icon(Icons.add_rounded),
+              )
+            : null,
         bottomNavigationBar: NavigationBar(
           selectedIndex: _index,
           onDestinationSelected: (i) => setState(() => _index = i),

@@ -35,10 +35,12 @@ Future<void> showExpenseDetails(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: cat.color.withValues(alpha: 0.15),
+                      color: AppColors.cyan.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: AppColors.cyan.withValues(alpha: 0.20)),
                     ),
-                    child: Icon(cat.icon, color: cat.color),
+                    child: Icon(cat.icon, color: AppColors.cyan),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -64,11 +66,16 @@ Future<void> showExpenseDetails(
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    Formatters.money(expense.amount, symbol: currency),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20,
+                  Flexible(
+                    child: Text(
+                      Formatters.money(expense.amount, symbol: currency),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ],

@@ -197,14 +197,21 @@ class _PieBreakdown extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${total == 0 ? 0 : (s.value / total * 100).round()}%',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color:
                               Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      Formatters.money(s.value, symbol: currency),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    Flexible(
+                      child: Text(
+                        Formatters.money(s.value, symbol: currency),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ],
                 ),

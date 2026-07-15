@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../providers/settings_provider.dart';
+import '../theme/app_theme.dart';
 import '../utils/categories.dart';
 import '../utils/formatters.dart';
 import '../utils/payment_methods.dart';
@@ -149,11 +150,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     children: Categories.all.map((c) {
                       final selected = c.key == _category;
                       return ChoiceChip(
-                        avatar: Icon(c.icon, size: 18, color: c.color),
+                        avatar: Icon(c.icon,
+                            size: 18,
+                            color: selected ? AppColors.cyan : null),
                         label: Text(c.label),
                         selected: selected,
                         showCheckmark: false,
-                        selectedColor: c.color.withValues(alpha: 0.20),
                         onSelected: (_) => setState(() => _category = c.key),
                       );
                     }).toList(),
@@ -167,11 +169,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     children: PaymentMethods.all.map((m) {
                       final selected = m.key == _method;
                       return ChoiceChip(
-                        avatar: Icon(m.icon, size: 18, color: m.color),
+                        avatar: Icon(m.icon,
+                            size: 18,
+                            color: selected ? AppColors.cyan : null),
                         label: Text(m.shortLabel),
                         selected: selected,
                         showCheckmark: false,
-                        selectedColor: m.color.withValues(alpha: 0.20),
                         onSelected: (_) => setState(() => _method = m.key),
                       );
                     }).toList(),
