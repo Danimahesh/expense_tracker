@@ -1,7 +1,7 @@
 name: expense_tracker
 description: A premium offline expense tracker with custom billing cycles.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
