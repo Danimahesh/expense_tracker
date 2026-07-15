@@ -30,29 +30,30 @@ class BillCard extends StatelessWidget {
     final progress = _progress();
 
     return AppCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
                   color: AppColors.cyan.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(7),
                 ),
                 child: const Icon(Icons.credit_card_rounded,
-                    color: AppColors.cyan, size: 17),
+                    color: AppColors.cyan, size: 14),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   method.shortLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13),
                 ),
               ),
               if (period.dueDate != null)
@@ -63,12 +64,12 @@ class BillCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
                     style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12),
+                        color: AppColors.textSecondary, fontSize: 11),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -78,7 +79,7 @@ class BillCard extends StatelessWidget {
                   children: [
                     const Text('Current bill',
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 11)),
+                            color: AppColors.textSecondary, fontSize: 10)),
                     const SizedBox(height: 2),
                     FittedBox(
                       fit: BoxFit.scaleDown,
@@ -86,7 +87,7 @@ class BillCard extends StatelessWidget {
                       child: Text(
                         Formatters.money(total, symbol: currency),
                         style: const TextStyle(
-                          fontSize: 24,
+                          fontSize: 19,
                           fontWeight: FontWeight.w800,
                           height: 1,
                         ),
@@ -105,7 +106,7 @@ class BillCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color:
                           overdue ? AppColors.danger : AppColors.textSecondary,
@@ -114,12 +115,12 @@ class BillCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 5,
+              minHeight: 4,
               backgroundColor: AppColors.surface2,
               valueColor: AlwaysStoppedAnimation(
                 overdue ? AppColors.danger : AppColors.cyan,
